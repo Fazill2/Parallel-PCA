@@ -15,7 +15,6 @@ using namespace std;
  
 // Function to read data from a file
 vector<vector<double>> readData(string filename) {
-    // read data from csv file
     ifstream file(filename);
     vector<vector<double>> data;
     string line;
@@ -31,13 +30,13 @@ vector<vector<double>> readData(string filename) {
     return data;
 }
 
-// Function to calculate the mean of a vector
+// Function to calculate the mean of a vector, complexity O(n)
 double mean(vector<double> vec) {
     double sum = accumulate(vec.begin(), vec.end(), 0.0);
     return sum / vec.size();
 }
 
-// Function to calculate standard deviation of a vector
+// Function to calculate standard deviation of a vector, complexity O(n)
 double standardDeviation(vector<double> vec) {
     double m = mean(vec);
     double sum = 0;
@@ -47,7 +46,7 @@ double standardDeviation(vector<double> vec) {
     return sqrt(sum / vec.size());
 }
 
-// Function to standardize the vector
+// Function to standardize the vector, complexity O(n)
 vector<double> standardize(vector<double> vec) {
     double m = mean(vec);
     double sd = standardDeviation(vec);
@@ -58,7 +57,7 @@ vector<double> standardize(vector<double> vec) {
     return standardized;
 }
 
-// Function to calculate the covariance of two vectors
+// Function to calculate the covariance of two vectors, complexity O(n)
 double covariance(vector<double> vec1, vector<double> vec2) {
     double m1 = mean(vec1);
     double m2 = mean(vec2);
@@ -69,7 +68,7 @@ double covariance(vector<double> vec1, vector<double> vec2) {
     return sum / vec1.size();
 }
 
-// Function to calculate the covariance matrix of a dataset
+// Function to calculate the covariance matrix of a dataset, complexity O(m^2*n), m - columns, n - rows
 vector<vector<double>> covarianceMatrix(vector<vector<double>> data) {
     int n = data.size();
     std::vector<std::vector<double>> covMatrix(n, std::vector<double>(n, 0.0));
@@ -80,7 +79,7 @@ vector<vector<double>> covarianceMatrix(vector<vector<double>> data) {
     }
     return covMatrix;
 }
-
+// Helper function to transpose a matrix, complexity O(n*m), n - rows, m - columns
 vector<vector<double>> transposeMatrix(const vector<vector<double>> A) {
     int n = A.size();
     int m = A[0].size();
@@ -93,7 +92,7 @@ vector<vector<double>> transposeMatrix(const vector<vector<double>> A) {
     return AT;
 }
 
-// Helper function to perform matrix multiplication
+// Helper function to perform matrix multiplication, complexity O(n*m*p), n - rows, m - columns, p - columns
 vector<vector<double>> matrixMultiply(const vector<vector<double>>& A, const vector<vector<double>>& B) {
     int n = A.size();
     int m = B.size();
@@ -109,6 +108,7 @@ vector<vector<double>> matrixMultiply(const vector<vector<double>>& A, const vec
     return C;
 }
 
+// Helper function to perform matrix subtraction, complexity O(n*m), n - rows, m - columns
 vector<vector<double>> matrixSubtract(const vector<vector<double>>& A, const vector<vector<double>>& B) {
     int n = A.size();
     int m = A[0].size();
@@ -121,6 +121,7 @@ vector<vector<double>> matrixSubtract(const vector<vector<double>>& A, const vec
     return C;
 };
 
+// Helper function to calculate the norm of a vector, complexity O(n)
 double norm(const vector<double>& x) {
     double sum = 0.0;
     for (int i = 0; i < x.size(); ++i) {
@@ -129,6 +130,7 @@ double norm(const vector<double>& x) {
     return sqrt(sum);
 }
 
+// Helper function to perform scalar multiplication, complexity O(n)
 vector<double> scalarMultiply(const vector<double>& x, double alpha) {
     vector<double> result(x.size(), 0.0);
     for (int i = 0; i < x.size(); ++i) {
@@ -137,6 +139,7 @@ vector<double> scalarMultiply(const vector<double>& x, double alpha) {
     return result;
 }
 
+// Helper function to create an identity matrix, complexity O(n)
 vector<vector<double>> identityMatrix(int n) {
     vector<vector<double>> I(n, vector<double>(n, 0.0));
     for (int i = 0; i < n; ++i) {
@@ -191,7 +194,7 @@ vector<double> calculateEigenvalues(vector<vector<double>>& matrix) {
     vector<vector<double>> ATemp = matrix;
     for (int i = 0; i < 1000; ++i) {
         pair<vector<vector<double>>, vector<vector<double>>> QR = householderTransformation(ATemp);
-        ATemp = matrixMultiply(QR.second, QR.first);
+        ATemp = matrixMultiply(QR.second, QR.first);    
     }
     vector<double> eigenvalues(n, 0.0);
     for (int i = 0; i < n; ++i) {
@@ -330,20 +333,17 @@ vector<vector<double>> pca(vector<vector<double>>& data) {
 
 
 int main(){
-    vector<vector<double>> data = readData("data/data.csv");
-    auto start_time = chrono::high_resolution_clock::now();
-    vector<vector<double>> pcaData = pca(data);
-    auto end_time = chrono::high_resolution_clock::now();
-    auto time = end_time - start_time;
-    cout << "PCA Data: " << endl;
-    for (int i = 0; i < pcaData[0].size(); i++) {
-        for (int j = 0; j < pcaData.size(); j++) {
-            cout << pcaData[j][i] << " ";
-        }
-        cout << endl;
+    // create array of strings for file names
+    string fileNames[] = {"data/data_1.csv", "data/data_2.csv", "data/data_3.csv", "data/data_4.csv", 
+            "data/data_5.csv", "data/data_6.csv", "data/data_7.csv", "data/data.csv"};
+    for (int i = 0; i < 8; i++) {
+        vector<vector<double>> data = readData(fileNames[i]);
+        auto start_time = chrono::high_resolution_clock::now();
+        vector<vector<double>> pcaData = pca(data);
+        auto end_time = chrono::high_resolution_clock::now();
+        auto time = end_time - start_time;
+        cout << "Time taken: " << time/chrono::milliseconds(1) << " ms" << endl;
     }
-
-    cout << "Time taken: " << time/chrono::milliseconds(1) << " ms" << endl;
 
     return 0;
 }
