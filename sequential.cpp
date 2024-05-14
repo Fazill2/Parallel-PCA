@@ -330,7 +330,7 @@ vector<vector<double>> pca(vector<vector<double>>& data) {
 
 
 int main(){
-    vector<vector<double>> data = readData("data.csv");
+    vector<vector<double>> data = readData("data/data.csv");
     auto start_time = chrono::high_resolution_clock::now();
     vector<vector<double>> pcaData = pca(data);
     auto end_time = chrono::high_resolution_clock::now();
