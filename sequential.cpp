@@ -30,6 +30,18 @@ vector<vector<double>> readData(string filename) {
     return data;
 }
 
+void saveData(vector<vector<double>> data, string filename) {
+    ofstream file;
+    file.open(filename);
+    for (int i = 0; i < data[0].size(); i++) {
+        for (int j = 0; j < data.size(); j++) {
+            file << data[j][i] << ",";
+        }
+        file << endl;
+    }
+    file.close();
+}
+
 // Function to calculate the mean of a vector, complexity O(n)
 double mean(vector<double> vec) {
     double sum = accumulate(vec.begin(), vec.end(), 0.0);
@@ -50,9 +62,9 @@ double standardDeviation(vector<double> vec) {
 vector<double> standardize(vector<double> vec) {
     double m = mean(vec);
     double sd = standardDeviation(vec);
-    vector<double> standardized;
+    vector<double> standardized(vec.size());
     for (int i = 0; i < vec.size(); i++) {
-        standardized.push_back((vec[i] - m) / sd);
+        standardized[i] = (vec[i] - m) / sd;
     }
     return standardized;
 }
@@ -181,20 +193,25 @@ pair<vector<vector<double>>, vector<vector<double>>> householderTransformation(c
         Q = matrixMultiply(Q, H);
         R = matrixMultiply(H, R);
     }
-    for (int i = 0; i < n - 1; ++i) {
-        for (int j = i + 1; j < n; ++j) {
-            R[i][j] = 0.0;
-        }
-    }
     return make_pair(Q, R);
 }
+
 
 vector<double> calculateEigenvalues(vector<vector<double>>& matrix) {
     int n = matrix.size();
     vector<vector<double>> ATemp = matrix;
-    for (int i = 0; i < 1000; ++i) {
+    vector<vector<double>> R = matrix;
+    for (int i = 0; i < 1000; i++){
         pair<vector<vector<double>>, vector<vector<double>>> QR = householderTransformation(ATemp);
+        R = QR.second;
         ATemp = matrixMultiply(QR.second, QR.first);    
+    }
+    cout << "Upper triangular matrix: " << endl;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            cout << fixed << setprecision(5) << ATemp[i][j] << " ";
+        }
+        cout << endl;
     }
     vector<double> eigenvalues(n, 0.0);
     for (int i = 0; i < n; ++i) {
@@ -269,16 +286,16 @@ vector<vector<double>> calculateEigenvectors(vector<vector<double>>& matrix, vec
 }
 
 pair<vector<double>, vector<vector<double>>> sortEigenvalues(vector<double> eigenvalues, vector<vector<double>> eigenvectors){
-    vector<pair<double, vector<double>>> eigenPairs;
+    vector<pair<double, vector<double>>> eigenPairs(eigenvalues.size());
     for (int i = 0; i < eigenvalues.size(); i++) {
-        eigenPairs.push_back(make_pair(eigenvalues[i], eigenvectors[i]));
+        eigenPairs[i] = make_pair(eigenvalues[i], eigenvectors[i]);
     }
     sort(eigenPairs.begin(), eigenPairs.end(), greater<pair<double, vector<double>>>());
-    vector<double> sortedEigenvalues;
-    vector<vector<double>> sortedEigenvectors;
+    vector<double> sortedEigenvalues = eigenvalues;
+    vector<vector<double>> sortedEigenvectors = eigenvectors;
     for (int i = 0; i < eigenvalues.size(); i++) {
-        sortedEigenvalues.push_back(eigenPairs[i].first);
-        sortedEigenvectors.push_back(eigenPairs[i].second);
+        sortedEigenvalues[i] = eigenPairs[i].first;
+        sortedEigenvectors[i] = eigenPairs[i].second;
     }
     return make_pair(sortedEigenvalues, sortedEigenvectors);
 }
@@ -307,25 +324,36 @@ int findThresholdIndex(vector<double>& cumulativeSum, double threshold) {
 }
 
 vector<vector<double>> pca(vector<vector<double>>& data) {
-    vector<vector<double>> standardizedData;
+    vector<vector<double>> standardizedData(data[0].size());
     for (int i = 0; i < data[0].size(); i++) {
-        vector<double> column;
+        vector<double> column(data.size());
         for (int j = 0; j < data.size(); j++) {
-            column.push_back(data[j][i]);
+            column[j] = data[j][i];
         }
-        standardizedData.push_back(standardize(column));
+        standardizedData[i] = standardize(column);
     }
     vector<vector<double>> covMatrix = covarianceMatrix(standardizedData);
+    cout << "Covariance matrix: " << endl;
+    for (int i = 0; i < covMatrix.size(); i++) {
+        for (int j = 0; j < covMatrix.size(); j++) {
+            cout << fixed << setprecision(5) << covMatrix[i][j] << " ";
+        }
+        cout << endl;
+    }
     vector<double> eigenvalues = calculateEigenvalues(covMatrix);
     vector<vector<double>> eigenvectors = calculateEigenvectors(covMatrix, eigenvalues);
     pair<vector<double>, vector<vector<double>>> sortedEigenvaluesVectors = sortEigenvalues(eigenvalues, eigenvectors);
     vector<double> sortedEigenvalues = sortedEigenvaluesVectors.first;
     vector<vector<double>> sortedEigenvectors = sortedEigenvaluesVectors.second;
+    // cout << "Eigenvalues: ";
+    // for (int i = 0; i < sortedEigenvalues.size(); i++) {
+    //     cout << fixed << setprecision(5) << sortedEigenvalues[i] << " ";
+    // }
     vector<double> explainedVariance = calculateCumulativeSum(eigenvalues);
     int thresholdIndex = findThresholdIndex(explainedVariance, 0.8);
-    vector<vector<double>> usefulComponents;
+    vector<vector<double>> usefulComponents(thresholdIndex + 1);
     for (int i = 0; i < thresholdIndex + 1; i++) {
-        usefulComponents.push_back(eigenvectors[i]);
+        usefulComponents[i] = eigenvectors[i];
     }
     return matrixMultiply(usefulComponents, standardizedData);
 }
@@ -334,15 +362,18 @@ vector<vector<double>> pca(vector<vector<double>>& data) {
 
 int main(){
     // create array of strings for file names
-    string fileNames[] = {"data/data_1.csv", "data/data_2.csv", "data/data_3.csv", "data/data_4.csv", 
-            "data/data_5.csv", "data/data_6.csv", "data/data_7.csv", "data/data.csv"};
-    for (int i = 0; i < 8; i++) {
+    // string fileNames[] = {"data/data_1.csv", "data/data_2.csv", "data/data_3.csv", "data/data_4.csv", 
+    //         "data/data_5.csv", "data/data_6.csv", "data/data_7.csv", "data/data.csv"};
+    string fileNames[] = {"data/data.csv"};
+    
+    for (int i = 0; i < 1; i++) {
         vector<vector<double>> data = readData(fileNames[i]);
         auto start_time = chrono::high_resolution_clock::now();
         vector<vector<double>> pcaData = pca(data);
         auto end_time = chrono::high_resolution_clock::now();
         auto time = end_time - start_time;
         cout << "Time taken: " << time/chrono::milliseconds(1) << " ms" << endl;
+        saveData(pcaData, "./output/output_" + to_string(i + 1) + ".csv");
     }
 
     return 0;
