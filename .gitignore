@@ -1,2 +1,14 @@
 /.vscode
 *.exe
+*.bat
+/.vs
+/Debug
+/PCA
+/x64
+CppProperties.json
+*.sdf
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+callgrind.out.*
