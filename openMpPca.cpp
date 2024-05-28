@@ -31,8 +31,7 @@ vector<vector<double>> readData(string filename) {
     return data;
 }
 
-void generateRandomData(int rows, int columns, string filename) {
-    
+void generateRandomData(int rows, int columns, string filename) {   
     ofstream file;
     vector<vector<double>> data(columns, vector<double>(rows));
     
@@ -85,7 +84,7 @@ void saveData(vector<vector<double>> data, string filename) {
     file.close();
 }
 
-double** vectorMatrixToDouble(vector<vector<double>> data) {
+double** vectorMatrixToDouble(vector<vector<double>>& data) {
     int rows = data.size();
     int columns = data[0].size();
     double** matrix = new double*[rows];
@@ -149,11 +148,11 @@ vector<vector<double>> covarianceMatrix(vector<vector<double>> data) {
     return covMatrix;
 }
 // Helper function to transpose a matrix, complexity O(n*m), n - rows, m - columns
-vector<vector<double>> transposeMatrix(const vector<vector<double>> A) {
+vector<vector<double>> transposeMatrix(vector<vector<double>> A) {
     int n = A.size();
     int m = A[0].size();
     vector<vector<double>> AT(m, vector<double>(n, 0.0));
-    #pragma omp parallel for collapse(2)
+    #pragma omp parallel for
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < m; ++j) {
             AT[j][i] = A[i][j];
@@ -163,7 +162,7 @@ vector<vector<double>> transposeMatrix(const vector<vector<double>> A) {
 }
 
 // Helper function to perform matrix multiplication, complexity O(n*m*p), n - rows, m - columns, p - columns
-vector<vector<double>> matrixMultiply(const vector<vector<double>>& A, const vector<vector<double>>& B) {
+vector<vector<double>> matrixMultiply(vector<vector<double>>& A, vector<vector<double>>& B) {
     int n = A.size();
     int m = B.size();
     int p = B[0].size();
@@ -171,9 +170,9 @@ vector<vector<double>> matrixMultiply(const vector<vector<double>>& A, const vec
     double** matrixB = vectorMatrixToDouble(B);
     double** matrixC = new double*[n];
     for (int i = 0; i < n; i++) {
-        matrixC[i] = new double[p];
+        matrixC[i] = new double[p]();
     }
-    #pragma omp parallel for collapse(3)
+    // #pragma omp parallel for collapse(3)
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < p; ++j) {
             for (int k = 0; k < m; ++k) {
@@ -187,11 +186,12 @@ vector<vector<double>> matrixMultiply(const vector<vector<double>>& A, const vec
             C[i][j] = matrixC[i][j];
         }
     }
+    
     return C;
 }
 
 // Helper function to perform matrix subtraction, complexity O(n*m), n - rows, m - columns
-vector<vector<double>> matrixSubtract(const vector<vector<double>>& A, const vector<vector<double>>& B) {
+vector<vector<double>> matrixSubtract(vector<vector<double>>& A, vector<vector<double>>& B) {
     int n = A.size();
     int m = A[0].size();
     vector<vector<double>> C(n, vector<double>(m, 0.0));
@@ -204,17 +204,16 @@ vector<vector<double>> matrixSubtract(const vector<vector<double>>& A, const vec
 };
 
 // Helper function to calculate the norm of a vector, complexity O(n)
-double norm(const vector<double>& x) {
+double norm(vector<double>& x) {
     double sum = 0.0;
-    int i = 0;
-    for (i = 0; i < x.size(); ++i) {
+    for (int i = 0; i < x.size(); ++i) {
         sum += x[i] * x[i];
     }
     return sqrt(sum);
 }
 
 // Helper function to perform scalar multiplication, complexity O(n)
-vector<double> scalarMultiply(const vector<double>& x, double alpha) {
+vector<double> scalarMultiply(vector<double>& x, double alpha) {
     vector<double> result(x.size(), 0.0);
     for (int i = 0; i < x.size(); ++i) {
         result[i] = alpha * x[i];
@@ -232,7 +231,7 @@ vector<vector<double>> identityMatrix(int n) {
 }
 
 // hausolder transformation
-pair<vector<vector<double>>, vector<vector<double>>> householderTransformation(const vector<vector<double>>& A) {
+pair<vector<vector<double>>, vector<vector<double>>> householderTransformation(vector<vector<double>>& A) {
     int n = A.size();
     vector<vector<double>> Q = identityMatrix(n);
     vector<vector<double>> R = A;
@@ -272,11 +271,9 @@ vector<double> calculateEigenvalues(vector<vector<double>>& matrix) {
     int n = matrix.size();
     vector<vector<double>> ATemp = matrix;
     
-    vector<vector<double>> R = matrix;
     bool converged = false;
     for (;;) {
         pair<vector<vector<double>>, vector<vector<double>>> QR = householderTransformation(ATemp);
-        R = QR.second;
         vector<vector<double>> new_ATemp = matrixMultiply(QR.second, QR.first);
         for (int i = 0; i < n; ++i) {
             bool flag = false;
@@ -305,26 +302,14 @@ vector<double> calculateEigenvalues(vector<vector<double>>& matrix) {
     return eigenvalues;
 }
 
-std::vector<double> backSubstitution(const std::vector<std::vector<double>>& matrix, const std::vector<double>& b) {
-    int n = matrix.size();
-    std::vector<double> x(n, 0.0);
-
-    for (int i = n - 1; i >= 0; --i) {
-        double sum = 0.0;
-        for (int j = i + 1; j < n; ++j) {
-            sum += matrix[i][j] * x[j];
-        }
-        x[i] = (b[i] - sum) / matrix[i][i];
-    }
-
-    return x;
-}
-
 vector<double> solveLinearEquations(vector<vector<double>> A, vector<double> b) {
-    int n = A.size();    
+    int n = A.size();
     for (int i = 0; i < n; i++) {
         // Make the diagonal element non-zero
-        
+        if (A[i][i] == 0) {
+            cout << "Error: Diagonal element is zero, cannot proceed." << endl;
+            exit(1);
+        }
         #pragma omp parallel for
         for (int j = i + 1; j < n; j++) {
             double factor = A[j][i] / A[i][i];
@@ -359,7 +344,7 @@ vector<vector<double>> calculateEigenvectors(vector<vector<double>>& matrix, vec
         vector<double> b(n, 0.0);
         vector<double> x = solveLinearEquations(transposeMatrix(A), b);
         for (int j = 0; j < n; ++j) {
-            eigenvectors[j][i] = x[j];
+            eigenvectors[i][j] = x[j];
         }
     }
     return eigenvectors;
@@ -404,7 +389,6 @@ int findThresholdIndex(vector<double>& cumulativeSum, double threshold) {
 }
 
 vector<vector<double>> pca(vector<vector<double>>& data) {
-    srand(time(NULL));
     vector<vector<double>> standardizedData(data[0].size());
     #pragma omp parallel for
     for (int i = 0; i < data[0].size(); i++) {
@@ -416,19 +400,21 @@ vector<vector<double>> pca(vector<vector<double>>& data) {
     }
     vector<vector<double>> covMatrix = covarianceMatrix(standardizedData);
     vector<double> eigenvalues = calculateEigenvalues(covMatrix);
+
     vector<vector<double>> eigenvectors = calculateEigenvectors(covMatrix, eigenvalues);
     pair<vector<double>, vector<vector<double>>> sortedEigenvaluesVectors = sortEigenvalues(eigenvalues, eigenvectors);
     vector<double> sortedEigenvalues = sortedEigenvaluesVectors.first;
     vector<vector<double>> sortedEigenvectors = sortedEigenvaluesVectors.second;
-    // cout << "Eigenvalues: ";
-    // for (int i = 0; i < sortedEigenvalues.size(); i++) {
-    //     cout << fixed << setprecision(5) << sortedEigenvalues[i] << " ";
-    // }
     vector<double> explainedVariance = calculateCumulativeSum(eigenvalues);
     int thresholdIndex = findThresholdIndex(explainedVariance, 0.8);
     vector<vector<double>> usefulComponents(thresholdIndex + 1);
     for (int i = 0; i < thresholdIndex + 1; i++) {
-        usefulComponents[i] = eigenvectors[i];
+        // normalize the eigenvectors
+        double norm = sqrt(inner_product(sortedEigenvectors[i].begin(), sortedEigenvectors[i].end(), sortedEigenvectors[i].begin(), 0.0));
+        for (int j = 0; j < sortedEigenvectors[i].size(); j++) {
+            sortedEigenvectors[i][j] /= norm;
+        }
+        usefulComponents[i] = sortedEigenvectors[i];
     }
     return matrixMultiply(usefulComponents, standardizedData);
 }
@@ -436,18 +422,15 @@ vector<vector<double>> pca(vector<vector<double>>& data) {
 
 
 int main(){
-    // create array of strings for file names
-    // string fileNames[] = {"data/data_1.csv", "data/data_2.csv", "data/data_3.csv", "data/data_4.csv", 
-    //         "data/data_5.csv", "data/data_6.csv", "data/data_7.csv", "data/data.csv"};
-    // string fileNames[] = {"data/data.csv"};
     string fileNames[] = {"randomData/data_0.csv", "randomData/data_1.csv", "randomData/data_2.csv", "randomData/data_3.csv", 
-            "randomData/data_4.csv", "randomData/data_5.csv", "randomData/data_6.csv", "randomData/data_7.csv"};
+        "randomData/data_4.csv", "randomData/data_5.csv", "randomData/data_6.csv", "randomData/data_7.csv", 
+        "randomData/data_8.csv", "randomData/data_9.csv", "randomData/data_10.csv", "randomData/data_11.csv"};
     int rows = 1000;
-    int columns[] = {10, 25, 50, 75, 100, 125, 150, 175};
-    // for (int i = 0; i < 8; i++) {
+    int columns[] = {10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32};
+    // for (int i = 0; i < 12; i++) {
     //     generateRandomData(rows, columns[i], fileNames[i]);
     // }
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 12; i++) {
         vector<vector<double>> data = readData(fileNames[i]);
         auto start_time = chrono::high_resolution_clock::now();
         vector<vector<double>> pcaData = pca(data);
