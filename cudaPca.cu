@@ -10,9 +10,64 @@
 #include <functional>
 #include <chrono>
 #include <iomanip>
+#include <cuda_runtime.h>
+#include <cublas_v2.h>
 
 using namespace std;
  
+vector<vector<double>> cudaMatrixMultiply(double *A, double *B, double *C, int M, int N, int K){
+    cudaError_t cudaStat;
+    cublasStatus_t stat;
+    cublasHandle_t handle;
+
+    double *h_A, *h_B, *h_C;
+    double *d_A, *d_B, *d_C;
+    const double alpha = 1.0;
+    const double beta = 0.0;
+
+    h_A = (double *)malloc(M * N * sizeof(double));
+    h_B = (double *)malloc(N * K * sizeof(double));
+    h_C = (double *)malloc(M * K * sizeof(double));
+
+    for (int i = 0; i < M * N; ++i) {
+        h_A[i] = static_cast<double>(i);
+    }
+
+    for (int i = 0; i < N * K; ++i) {
+        h_B[i] = static_cast<double>(i);
+    }
+
+    cudaStat = cudaMalloc((void **)&d_A, M * N * sizeof(double));
+    cudaStat = cudaMalloc((void **)&d_B, N * K * sizeof(double));
+    cudaStat = cudaMalloc((void **)&d_C, M * K * sizeof(double));
+
+    stat = cublasCreate(&handle);
+
+    stat = cublasSetMatrix(M, N, sizeof(double), h_A, M, d_A, M);
+    stat = cublasSetMatrix(N, K, sizeof(double), h_B, N, d_B, N);
+
+    stat = cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, M, K, N, &alpha, d_A, M, d_B, N, &beta, d_C, M);
+
+    stat = cublasGetMatrix(M, K, sizeof(double), d_C, M, h_C, M);
+
+    // Cleanup
+    vector<vector<double>> C_vector(M, vector<double>(K, 0.0));
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < K; j++) {
+            C_vector[i][j] = h_C[i * K + j];
+        }
+    }
+    
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
+    cublasDestroy(handle);
+    free(h_A);
+    free(h_B);
+    free(h_C);
+    return C_vector;
+}
+
 // Function to read data from a file
 vector<vector<double>> readData(string filename) {
     ifstream file(filename);
@@ -128,19 +183,8 @@ vector<vector<double>> matrixMultiply(const vector<vector<double>>& A, const vec
     for (int i = 0; i < n; i++) {
         matrixC[i] = new double[p];
     }
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < p; ++j) {
-            for (int k = 0; k < m; ++k) {
-                matrixC[i][j] += matrixA[i][k] * matrixB[k][j];
-            }
-        }
-    }
-    vector<vector<double>> C(n, vector<double>(p, 0.0));
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < p; j++) {
-            C[i][j] = matrixC[i][j];
-        }
-    }
+    vector<vector<double>> C = cudaMatrixMultiply(*matrixA, *matrixB, *matrixC, n, m, p);
+
     return C;
 }
 
