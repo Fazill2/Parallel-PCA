@@ -126,7 +126,7 @@ vector<vector<double>> matrixMultiply(const vector<vector<double>>& A, const vec
     double** matrixB = vectorMatrixToDouble(B);
     double** matrixC = new double*[n];
     for (int i = 0; i < n; i++) {
-        matrixC[i] = new double[p];
+        matrixC[i] = new double[p]();
     }
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < p; ++j) {
@@ -141,6 +141,8 @@ vector<vector<double>> matrixMultiply(const vector<vector<double>>& A, const vec
             C[i][j] = matrixC[i][j];
         }
     }
+    
+
     return C;
 }
 
@@ -225,11 +227,9 @@ vector<double> calculateEigenvalues(vector<vector<double>>& matrix) {
     int n = matrix.size();
     vector<vector<double>> ATemp = matrix;
     
-    vector<vector<double>> R = matrix;
     bool converged = false;
     for (;;) {
         pair<vector<vector<double>>, vector<vector<double>>> QR = householderTransformation(ATemp);
-        R = QR.second;
         vector<vector<double>> new_ATemp = matrixMultiply(QR.second, QR.first);
         for (int i = 0; i < n; ++i) {
             bool flag = false;
@@ -317,7 +317,7 @@ vector<vector<double>> calculateEigenvectors(vector<vector<double>>& matrix, vec
         vector<double> b(n, 0.0);
         vector<double> x = solveLinearEquations(transposeMatrix(A), b);
         for (int j = 0; j < n; ++j) {
-            eigenvectors[j][i] = x[j];
+            eigenvectors[i][j] = x[j];
         }
     }
     return eigenvectors;
@@ -372,14 +372,11 @@ vector<vector<double>> pca(vector<vector<double>>& data) {
     }
     vector<vector<double>> covMatrix = covarianceMatrix(standardizedData);
     vector<double> eigenvalues = calculateEigenvalues(covMatrix);
+
     vector<vector<double>> eigenvectors = calculateEigenvectors(covMatrix, eigenvalues);
     pair<vector<double>, vector<vector<double>>> sortedEigenvaluesVectors = sortEigenvalues(eigenvalues, eigenvectors);
     vector<double> sortedEigenvalues = sortedEigenvaluesVectors.first;
     vector<vector<double>> sortedEigenvectors = sortedEigenvaluesVectors.second;
-    // cout << "Eigenvalues: ";
-    // for (int i = 0; i < sortedEigenvalues.size(); i++) {
-    //     cout << fixed << setprecision(5) << sortedEigenvalues[i] << " ";
-    // }
     vector<double> explainedVariance = calculateCumulativeSum(eigenvalues);
     int thresholdIndex = findThresholdIndex(explainedVariance, 0.8);
     vector<vector<double>> usefulComponents(thresholdIndex + 1);
