@@ -434,7 +434,7 @@ vector<vector<double>> pca(vector<vector<double>>& data) {
     pair<vector<double>, vector<vector<double>>> sortedEigenvaluesVectors = sortEigenvalues(eigenvalues, eigenvectors);
     vector<double> sortedEigenvalues = sortedEigenvaluesVectors.first;
     vector<vector<double>> sortedEigenvectors = sortedEigenvaluesVectors.second;
-    vector<double> explainedVariance = calculateCumulativeSum(eigenvalues);
+    vector<double> explainedVariance = calculateCumulativeSum(sortedEigenvalues);
     int thresholdIndex = findThresholdIndex(explainedVariance, 0.8);
     vector<vector<double>> usefulComponents(thresholdIndex + 1);
     for (int i = 0; i < thresholdIndex + 1; i++) {
