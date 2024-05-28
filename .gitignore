@@ -12,3 +12,4 @@ CppProperties.json
 *.vcxproj.filters
 *.vcxproj.user
 callgrind.out.*
+_CL_*

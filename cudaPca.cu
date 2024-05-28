@@ -1,4 +1,3 @@
-#include <omp.h>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -29,48 +28,6 @@ vector<vector<double>> readData(string filename) {
         data.push_back(row);
     }
     return data;
-}
-
-void generateRandomData(int rows, int columns, string filename) {
-    
-    ofstream file;
-    vector<vector<double>> data(columns, vector<double>(rows));
-    
-    for (int i = 0; i < columns; i++) {
-        for (int j = 0; j < rows; j++) {
-            data[i][j] = (double)rand() / RAND_MAX;
-        }
-    }
-    // for random number of random columns generate random linear equation ax+b where x is another random column
-    int randomColumns = rand() % columns;
-    vector<double> a(randomColumns);
-    vector<double> b(randomColumns);
-    for (int i = 0; i < randomColumns; i++) {
-        a[i] = (double)rand() / RAND_MAX;
-        b[i] = (double)rand() / RAND_MAX;
-    }
-    // pca requires data to be somewhat dependent
-    for (int i = 0; i < randomColumns; i++) {
-        int randColumn1 = rand() % columns;
-        int randColumn2 = rand() % columns;
-        for (int j = 0; j < rows; j++) {
-            data[randColumn1][j] = a[i] * data[randColumn2][j] + b[i];
-        }
-    }
-
-    file.open(filename);
-    for (int i = 0; i < data[0].size(); i++) {
-        for (int j = 0; j < data.size(); j++) {
-            file << data[j][i];
-            if (j != data.size() - 1) {
-                file << ",";
-            }
-        }
-        if (i != data[0].size() - 1) {
-            file << endl;
-        }
-    }
-    file.close();
 }
 
 void saveData(vector<vector<double>> data, string filename) {
@@ -140,7 +97,6 @@ double covariance(vector<double> vec1, vector<double> vec2) {
 vector<vector<double>> covarianceMatrix(vector<vector<double>> data) {
     int n = data.size();
     std::vector<std::vector<double>> covMatrix(n, std::vector<double>(n, 0.0));
-    #pragma omp parallel for collapse(2)
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             covMatrix[i][j] = covariance(data[i], data[j]);
@@ -153,7 +109,6 @@ vector<vector<double>> transposeMatrix(const vector<vector<double>> A) {
     int n = A.size();
     int m = A[0].size();
     vector<vector<double>> AT(m, vector<double>(n, 0.0));
-    #pragma omp parallel for collapse(2)
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < m; ++j) {
             AT[j][i] = A[i][j];
@@ -173,7 +128,6 @@ vector<vector<double>> matrixMultiply(const vector<vector<double>>& A, const vec
     for (int i = 0; i < n; i++) {
         matrixC[i] = new double[p];
     }
-    #pragma omp parallel for collapse(3)
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < p; ++j) {
             for (int k = 0; k < m; ++k) {
@@ -206,8 +160,7 @@ vector<vector<double>> matrixSubtract(const vector<vector<double>>& A, const vec
 // Helper function to calculate the norm of a vector, complexity O(n)
 double norm(const vector<double>& x) {
     double sum = 0.0;
-    int i = 0;
-    for (i = 0; i < x.size(); ++i) {
+    for (int i = 0; i < x.size(); ++i) {
         sum += x[i] * x[i];
     }
     return sqrt(sum);
@@ -321,11 +274,16 @@ std::vector<double> backSubstitution(const std::vector<std::vector<double>>& mat
 }
 
 vector<double> solveLinearEquations(vector<vector<double>> A, vector<double> b) {
-    int n = A.size();    
+    int n = A.size();
+
+    
     for (int i = 0; i < n; i++) {
         // Make the diagonal element non-zero
-        
-        #pragma omp parallel for
+        if (A[i][i] == 0) {
+            cout << "Error: Diagonal element is zero, cannot proceed." << endl;
+            exit(1);
+        }
+
         for (int j = i + 1; j < n; j++) {
             double factor = A[j][i] / A[i][i];
             for (int k = i; k < n; k++) {
@@ -404,9 +362,7 @@ int findThresholdIndex(vector<double>& cumulativeSum, double threshold) {
 }
 
 vector<vector<double>> pca(vector<vector<double>>& data) {
-    srand(time(NULL));
     vector<vector<double>> standardizedData(data[0].size());
-    #pragma omp parallel for
     for (int i = 0; i < data[0].size(); i++) {
         vector<double> column(data.size());
         for (int j = 0; j < data.size(); j++) {
@@ -437,16 +393,10 @@ vector<vector<double>> pca(vector<vector<double>>& data) {
 
 int main(){
     // create array of strings for file names
-    // string fileNames[] = {"data/data_1.csv", "data/data_2.csv", "data/data_3.csv", "data/data_4.csv", 
-    //         "data/data_5.csv", "data/data_6.csv", "data/data_7.csv", "data/data.csv"};
-    // string fileNames[] = {"data/data.csv"};
     string fileNames[] = {"randomData/data_0.csv", "randomData/data_1.csv", "randomData/data_2.csv", "randomData/data_3.csv", 
             "randomData/data_4.csv", "randomData/data_5.csv", "randomData/data_6.csv", "randomData/data_7.csv"};
-    int rows = 1000;
-    int columns[] = {10, 25, 50, 75, 100, 125, 150, 175};
-    // for (int i = 0; i < 8; i++) {
-    //     generateRandomData(rows, columns[i], fileNames[i]);
-    // }
+    // string fileNames[] = {"data/data.csv"};
+    
     for (int i = 0; i < 8; i++) {
         vector<vector<double>> data = readData(fileNames[i]);
         auto start_time = chrono::high_resolution_clock::now();
