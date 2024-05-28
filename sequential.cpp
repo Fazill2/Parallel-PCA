@@ -30,6 +30,47 @@ vector<vector<double>> readData(string filename) {
     return data;
 }
 
+void generateRandomData(int rows, int columns, string filename) {   
+    ofstream file;
+    vector<vector<double>> data(columns, vector<double>(rows));
+    
+    for (int i = 0; i < columns; i++) {
+        for (int j = 0; j < rows; j++) {
+            data[i][j] = (double)rand() / RAND_MAX;
+        }
+    }
+    // for random number of random columns generate random linear equation ax+b where x is another random column
+    int randomColumns = rand() % columns;
+    vector<double> a(randomColumns);
+    vector<double> b(randomColumns);
+    for (int i = 0; i < randomColumns; i++) {
+        a[i] = (double)rand() / RAND_MAX;
+        b[i] = (double)rand() / RAND_MAX;
+    }
+    // pca requires data to be somewhat dependent
+    for (int i = 0; i < randomColumns; i++) {
+        int randColumn1 = rand() % columns;
+        int randColumn2 = rand() % columns;
+        for (int j = 0; j < rows; j++) {
+            data[randColumn1][j] = a[i] * data[randColumn2][j] + b[i];
+        }
+    }
+
+    file.open(filename);
+    for (int i = 0; i < data[0].size(); i++) {
+        for (int j = 0; j < data.size(); j++) {
+            file << data[j][i];
+            if (j != data.size() - 1) {
+                file << ",";
+            }
+        }
+        if (i != data[0].size() - 1) {
+            file << endl;
+        }
+    }
+    file.close();
+}
+
 void saveData(vector<vector<double>> data, string filename) {
     ofstream file;
     file.open(filename);
@@ -377,12 +418,15 @@ vector<vector<double>> pca(vector<vector<double>>& data) {
 
 
 int main(){
-    // create array of strings for file names
     string fileNames[] = {"randomData/data_0.csv", "randomData/data_1.csv", "randomData/data_2.csv", "randomData/data_3.csv", 
-            "randomData/data_4.csv", "randomData/data_5.csv", "randomData/data_6.csv", "randomData/data_7.csv"};
-    // string fileNames[] = {"data/data.csv"};
-    
-    for (int i = 0; i < 8; i++) {
+        "randomData/data_4.csv", "randomData/data_5.csv", "randomData/data_6.csv", "randomData/data_7.csv", 
+        "randomData/data_8.csv", "randomData/data_9.csv", "randomData/data_10.csv", "randomData/data_11.csv"};
+    int rows = 1000;
+    int columns[] = {10, 12, 14, 16, 18, 20, 22, 24};
+    // for (int i = 0; i < 8; i++) {
+    //     generateRandomData(rows, columns[i], fileNames[i]);
+    // }
+    for (int i = 0; i < 12; i++) {
         vector<vector<double>> data = readData(fileNames[i]);
         auto start_time = chrono::high_resolution_clock::now();
         vector<vector<double>> pcaData = pca(data);
