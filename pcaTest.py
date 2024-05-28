@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import time
 # load the data
 def loadData():
-    data = pd.read_csv('randomData/data_0.csv', header=None)
+    data = pd.read_csv('randomData/data_9.csv', header=None)
     data.dropna(inplace=True)
     return data
 
@@ -24,7 +24,10 @@ def performPCA(data):
 
 if __name__ == '__main__':
     data = loadData()
+    start = time.time()
     principalDf = performPCA(data)
+    end = time.time()
+    print("Time taken: ", end-start)
     print(principalDf.head())
     # save data to csv
-    principalDf.to_csv('example/ScikitLearn.csv', index=False, header=False)
+    

@@ -163,25 +163,45 @@ vector<vector<double>> matrixMultiply(vector<vector<double>>& A, vector<vector<d
     int n = A.size();
     int m = B.size();
     int p = B[0].size();
-    double** matrixA = vectorMatrixToDouble(A);
-    double** matrixB = vectorMatrixToDouble(B);
-    double** matrixC = new double*[n];
-    for (int i = 0; i < n; i++) {
-        matrixC[i] = new double[p]();
-    }
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < p; ++j) {
-            for (int k = 0; k < m; ++k) {
-                matrixC[i][j] += matrixA[i][k] * matrixB[k][j];
-            }
-        }
-    }
     vector<vector<double>> C(n, vector<double>(p, 0.0));
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < p; j++) {
-            C[i][j] = matrixC[i][j];
+            for (int k = 0; k < m; k++) {
+                C[i][j] += A[i][k] * B[k][j];
+            }
         }
     }
+    // double** matrixA = vectorMatrixToDouble(A);
+    // double** matrixB = vectorMatrixToDouble(B);
+    // double** matrixC = new double*[n];
+    // for (int i = 0; i < n; i++) {
+    //     matrixC[i] = new double[p]();
+    // }
+    // for (int i = 0; i < n; ++i) {
+    //     for (int j = 0; j < p; ++j) {
+    //         for (int k = 0; k < m; ++k) {
+    //             matrixC[i][j] += matrixA[i][k] * matrixB[k][j];
+    //         }
+    //     }
+    // }
+    // vector<vector<double>> C(n, vector<double>(p, 0.0));
+    // for (int i = 0; i < n; i++) {
+    //     for (int j = 0; j < p; j++) {
+    //         C[i][j] = matrixC[i][j];
+    //     }
+    // }
+    // for (int i = 0; i < n; i++) {
+    //     delete[] matrixA[i];
+    // }
+    // delete[] matrixA;
+    // for (int i = 0; i < m; i++) {
+    //     delete[] matrixB[i];
+    // }
+    // delete[] matrixB;
+    // for (int i = 0; i < n; i++) {
+    //     delete[] matrixC[i];
+    // }
+    // delete[] matrixC;
     
 
     return C;
@@ -239,26 +259,42 @@ pair<vector<vector<double>>, vector<vector<double>>> householderTransformation(v
             x[j - i] = R[j][i];
         }
 
-        double alpha = norm(x);
+        double alpha = (x[0] >= 0) ? -norm(x) : norm(x);
 
         vector<double> e(n - i, 0.0);
         e[0] = 1.0;
 
-        vector<double> v(n - i, 0.0);
+        vector<double> v(n - i);
         for (int j = 0; j < n - i; ++j) {
-            v[j] = x[j] - alpha * e[j];
+            v[j] = x[j] + alpha * e[j];
         }
-        vector<double> normVec(n - i, 0.0);
-        normVec = scalarMultiply(v, 1.0 / norm(v));
-        
-        vector<vector<double>> H = identityMatrix(n);
-        for (int j = 0; j < n - i; ++j) {
-            for (int k = 0; k < n - i; ++k) {
-                H[j + i][k + i] -= 2 * normVec[j] * normVec[k];
+
+        double vNorm = norm(v);
+        if (vNorm != 0) {
+            v = scalarMultiply(v, 1.0 / vNorm);
+        }
+
+        // Apply Householder transformation to R
+        for (int j = i; j < n; ++j) {
+            double dotProduct = 0.0;
+            for (int k = i; k < n; ++k) {
+                dotProduct += v[k - i] * R[k][j];
+            }
+            for (int k = i; k < n; ++k) {
+                R[k][j] -= 2.0 * v[k - i] * dotProduct;
             }
         }
-        Q = matrixMultiply(Q, H);
-        R = matrixMultiply(H, R);
+
+        // Apply Householder transformation to Q
+        for (int j = 0; j < n; ++j) {
+            double dotProduct = 0.0;
+            for (int k = i; k < n; ++k) {
+                dotProduct += v[k - i] * Q[j][k];
+            }
+            for (int k = i; k < n; ++k) {
+                Q[j][k] -= 2.0 * v[k - i] * dotProduct;
+            }
+        }
     }
     return make_pair(Q, R);
 }
@@ -268,27 +304,24 @@ vector<double> calculateEigenvalues(vector<vector<double>>& matrix) {
     int n = matrix.size();
     vector<vector<double>> ATemp = matrix;
     
+    const double epsilon = 1e-4;  // Convergence threshold
     bool converged = false;
-    for (;;) {
+    
+    while (!converged) {
         pair<vector<vector<double>>, vector<vector<double>>> QR = householderTransformation(ATemp);
         vector<vector<double>> new_ATemp = matrixMultiply(QR.second, QR.first);
+        
+        converged = true;
         for (int i = 0; i < n; ++i) {
-            bool flag = false;
             for (int j = 0; j < n; ++j) {
-                if (abs(new_ATemp[i][j] - ATemp[i][j]) > 1e-6) {
-                    flag = true;
+                if (abs(new_ATemp[i][j] - ATemp[i][j]) > epsilon) {
+                    converged = false;
                     break;
                 }
-                if (i == n - 1 && j == n - 1) {
-                    converged = true;
-                }
             }
-            if (flag) {
+            if (!converged) {
                 break;
             }
-        }
-        if (converged){
-            break;
         }
         ATemp = new_ATemp;
     }
@@ -418,12 +451,13 @@ vector<vector<double>> pca(vector<vector<double>>& data) {
 
 
 int main(){
-    string fileNames[] = {"randomData/data_0.csv", "randomData/data_1.csv", "randomData/data_2.csv", "randomData/data_3.csv", 
+     string fileNames[] = {"randomData/data_0.csv", "randomData/data_1.csv", "randomData/data_2.csv", "randomData/data_3.csv", 
         "randomData/data_4.csv", "randomData/data_5.csv", "randomData/data_6.csv", "randomData/data_7.csv", 
         "randomData/data_8.csv", "randomData/data_9.csv", "randomData/data_10.csv", "randomData/data_11.csv"};
     int rows = 1000;
-    int columns[] = {10, 12, 14, 16, 18, 20, 22, 24};
-    // for (int i = 0; i < 8; i++) {
+    int columns[] = {10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50, 54};
+    float times[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    // for (int i = 0; i < 12; i++) {
     //     generateRandomData(rows, columns[i], fileNames[i]);
     // }
     for (int i = 0; i < 12; i++) {
@@ -432,9 +466,21 @@ int main(){
         vector<vector<double>> pcaData = pca(data);
         auto end_time = chrono::high_resolution_clock::now();
         auto time = end_time - start_time;
+        int timeTaken = chrono::duration_cast<chrono::milliseconds>(time).count();
         cout << "Time taken: " << time/chrono::milliseconds(1) << " ms" << endl;
+        times[i] =  (float)timeTaken / 1000.0;
         saveData(pcaData, "./output/output_" + to_string(i + 1) + ".csv");
     }
-
+    // save times to file for plotting
+    ofstream file;
+    file.open("seqTimes.txt");
+    file << "[";
+    for (int i = 0; i < 12; i++) {
+        file << times[i];
+        if (i != 11) {
+            file << ",";
+        }
+    }
+    file << "]";
     return 0;
 }
