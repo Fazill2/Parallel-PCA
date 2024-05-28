@@ -42,7 +42,7 @@ void saveData(vector<vector<double>> data, string filename) {
     file.close();
 }
 
-double** vectorMatrixToDouble(vector<vector<double>> data) {
+double** vectorMatrixToDouble(vector<vector<double>>& data) {
     int rows = data.size();
     int columns = data[0].size();
     double** matrix = new double*[rows];
@@ -105,7 +105,7 @@ vector<vector<double>> covarianceMatrix(vector<vector<double>> data) {
     return covMatrix;
 }
 // Helper function to transpose a matrix, complexity O(n*m), n - rows, m - columns
-vector<vector<double>> transposeMatrix(const vector<vector<double>> A) {
+vector<vector<double>> transposeMatrix(vector<vector<double>> A) {
     int n = A.size();
     int m = A[0].size();
     vector<vector<double>> AT(m, vector<double>(n, 0.0));
@@ -118,7 +118,7 @@ vector<vector<double>> transposeMatrix(const vector<vector<double>> A) {
 }
 
 // Helper function to perform matrix multiplication, complexity O(n*m*p), n - rows, m - columns, p - columns
-vector<vector<double>> matrixMultiply(const vector<vector<double>>& A, const vector<vector<double>>& B) {
+vector<vector<double>> matrixMultiply(vector<vector<double>>& A, vector<vector<double>>& B) {
     int n = A.size();
     int m = B.size();
     int p = B[0].size();
@@ -147,7 +147,7 @@ vector<vector<double>> matrixMultiply(const vector<vector<double>>& A, const vec
 }
 
 // Helper function to perform matrix subtraction, complexity O(n*m), n - rows, m - columns
-vector<vector<double>> matrixSubtract(const vector<vector<double>>& A, const vector<vector<double>>& B) {
+vector<vector<double>> matrixSubtract(vector<vector<double>>& A, vector<vector<double>>& B) {
     int n = A.size();
     int m = A[0].size();
     vector<vector<double>> C(n, vector<double>(m, 0.0));
@@ -160,7 +160,7 @@ vector<vector<double>> matrixSubtract(const vector<vector<double>>& A, const vec
 };
 
 // Helper function to calculate the norm of a vector, complexity O(n)
-double norm(const vector<double>& x) {
+double norm(vector<double>& x) {
     double sum = 0.0;
     for (int i = 0; i < x.size(); ++i) {
         sum += x[i] * x[i];
@@ -169,7 +169,7 @@ double norm(const vector<double>& x) {
 }
 
 // Helper function to perform scalar multiplication, complexity O(n)
-vector<double> scalarMultiply(const vector<double>& x, double alpha) {
+vector<double> scalarMultiply(vector<double>& x, double alpha) {
     vector<double> result(x.size(), 0.0);
     for (int i = 0; i < x.size(); ++i) {
         result[i] = alpha * x[i];
@@ -187,7 +187,7 @@ vector<vector<double>> identityMatrix(int n) {
 }
 
 // hausolder transformation
-pair<vector<vector<double>>, vector<vector<double>>> householderTransformation(const vector<vector<double>>& A) {
+pair<vector<vector<double>>, vector<vector<double>>> householderTransformation(vector<vector<double>>& A) {
     int n = A.size();
     vector<vector<double>> Q = identityMatrix(n);
     vector<vector<double>> R = A;
@@ -258,25 +258,8 @@ vector<double> calculateEigenvalues(vector<vector<double>>& matrix) {
     return eigenvalues;
 }
 
-std::vector<double> backSubstitution(const std::vector<std::vector<double>>& matrix, const std::vector<double>& b) {
-    int n = matrix.size();
-    std::vector<double> x(n, 0.0);
-
-    for (int i = n - 1; i >= 0; --i) {
-        double sum = 0.0;
-        for (int j = i + 1; j < n; ++j) {
-            sum += matrix[i][j] * x[j];
-        }
-        x[i] = (b[i] - sum) / matrix[i][i];
-    }
-
-    return x;
-}
-
 vector<double> solveLinearEquations(vector<vector<double>> A, vector<double> b) {
     int n = A.size();
-
-    
     for (int i = 0; i < n; i++) {
         // Make the diagonal element non-zero
         if (A[i][i] == 0) {
@@ -381,7 +364,12 @@ vector<vector<double>> pca(vector<vector<double>>& data) {
     int thresholdIndex = findThresholdIndex(explainedVariance, 0.8);
     vector<vector<double>> usefulComponents(thresholdIndex + 1);
     for (int i = 0; i < thresholdIndex + 1; i++) {
-        usefulComponents[i] = eigenvectors[i];
+        // normalize the eigenvectors
+        double norm = sqrt(inner_product(sortedEigenvectors[i].begin(), sortedEigenvectors[i].end(), sortedEigenvectors[i].begin(), 0.0));
+        for (int j = 0; j < sortedEigenvectors[i].size(); j++) {
+            sortedEigenvectors[i][j] /= norm;
+        }
+        usefulComponents[i] = sortedEigenvectors[i];
     }
     return matrixMultiply(usefulComponents, standardizedData);
 }
