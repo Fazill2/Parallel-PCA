@@ -7,14 +7,14 @@ import matplotlib.pyplot as plt
 import time
 # load the data
 def loadData():
-    data = pd.read_csv('randomData/data_9.csv', header=None)
+    data = pd.read_csv('randomData/data_11.csv', header=None)
     data.dropna(inplace=True)
     return data
 
 # perform pca
 def performPCA(data):
     x = StandardScaler().fit_transform(data)
-    pca = PCA(n_components=5)
+    pca = PCA(n_components=30)
     principalComponents = pca.fit_transform(x)
     print(pca.explained_variance_)
     # print eigenvectors
