@@ -171,39 +171,6 @@ vector<vector<double>> matrixMultiply(vector<vector<double>>& A, vector<vector<d
             }
         }
     }
-    // double** matrixA = vectorMatrixToDouble(A);
-    // double** matrixB = vectorMatrixToDouble(B);
-    // double** matrixC = new double*[n];
-    // for (int i = 0; i < n; i++) {
-    //     matrixC[i] = new double[p]();
-    // }
-    // for (int i = 0; i < n; ++i) {
-    //     for (int j = 0; j < p; ++j) {
-    //         for (int k = 0; k < m; ++k) {
-    //             matrixC[i][j] += matrixA[i][k] * matrixB[k][j];
-    //         }
-    //     }
-    // }
-    // vector<vector<double>> C(n, vector<double>(p, 0.0));
-    // for (int i = 0; i < n; i++) {
-    //     for (int j = 0; j < p; j++) {
-    //         C[i][j] = matrixC[i][j];
-    //     }
-    // }
-    // for (int i = 0; i < n; i++) {
-    //     delete[] matrixA[i];
-    // }
-    // delete[] matrixA;
-    // for (int i = 0; i < m; i++) {
-    //     delete[] matrixB[i];
-    // }
-    // delete[] matrixB;
-    // for (int i = 0; i < n; i++) {
-    //     delete[] matrixC[i];
-    // }
-    // delete[] matrixC;
-    
-
     return C;
 }
 
@@ -234,6 +201,18 @@ vector<double> scalarMultiply(vector<double>& x, double alpha) {
     vector<double> result(x.size(), 0.0);
     for (int i = 0; i < x.size(); ++i) {
         result[i] = alpha * x[i];
+    }
+    return result;
+}
+
+vector<vector<double>> scalarMultiplyMatrix(vector<vector<double>>& A, double alpha) {
+    int n = A.size();
+    int m = A[0].size();
+    vector<vector<double>> result(n, vector<double>(m, 0.0));
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            result[i][j] = alpha * A[i][j];
+        }
     }
     return result;
 }
@@ -303,13 +282,26 @@ pair<vector<vector<double>>, vector<vector<double>>> householderTransformation(v
 vector<double> calculateEigenvalues(vector<vector<double>>& matrix) {
     int n = matrix.size();
     vector<vector<double>> ATemp = matrix;
-    
-    const double epsilon = 1e-4;  // Convergence threshold
+    vector<vector<double>> Util(n, vector<double>(n, 0.0));
+    vector<vector<double>> smult(n, vector<double>(n, 0.0));
+    const double epsilon = 1e-3;  // Convergence threshold
     bool converged = false;
-    
+    double s;
+    vector<vector<double>> I = identityMatrix(n);
     while (!converged) {
-        pair<vector<vector<double>>, vector<vector<double>>> QR = householderTransformation(ATemp);
+        s = ATemp[n-1][n-1];
+        for (int i = 0; i < n; i++){
+            Util[i][i] = s;
+        }
+        for (int i = 0; i < n; i++){
+            ATemp[i][i] = ATemp[i][i] - smult[i][i];
+
+        }
+        pair<vector<vector<double>>, vector<vector<double>>> QR =  householderTransformation(ATemp);
         vector<vector<double>> new_ATemp = matrixMultiply(QR.second, QR.first);
+        for (int i = 0; i < n; i++){
+            ATemp[i][i] = ATemp[i][i] + smult[i][i];
+        }
         
         converged = true;
         for (int i = 0; i < n; ++i) {
@@ -323,6 +315,7 @@ vector<double> calculateEigenvalues(vector<vector<double>>& matrix) {
                 break;
             }
         }
+        
         ATemp = new_ATemp;
     }
     vector<double> eigenvalues(n, 0.0);
@@ -451,16 +444,18 @@ vector<vector<double>> pca(vector<vector<double>>& data) {
 
 
 int main(){
-     string fileNames[] = {"randomData/data_0.csv", "randomData/data_1.csv", "randomData/data_2.csv", "randomData/data_3.csv", 
+    string fileNames[] = {"randomData/data_0.csv", "randomData/data_1.csv", "randomData/data_2.csv", "randomData/data_3.csv", 
         "randomData/data_4.csv", "randomData/data_5.csv", "randomData/data_6.csv", "randomData/data_7.csv", 
-        "randomData/data_8.csv", "randomData/data_9.csv", "randomData/data_10.csv", "randomData/data_11.csv"};
+        "randomData/data_8.csv", "randomData/data_9.csv", "randomData/data_10.csv", "randomData/data_11.csv", 
+        "randomData/data_12.csv", "randomData/data_13.csv", "randomData/data_14.csv", "randomData/data_15.csv",
+        "randomData/data_16.csv", "randomData/data_17.csv", "randomData/data_18.csv", "randomData/data_19.csv"};
     int rows = 1000;
-    int columns[] = {10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50, 54};
-    float times[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    // for (int i = 0; i < 12; i++) {
+    int columns[] = {10, 20, 30 ,40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200};
+    float times[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    // for (int i = 0; i < 20; i++) {
     //     generateRandomData(rows, columns[i], fileNames[i]);
     // }
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 20; i++) {
         vector<vector<double>> data = readData(fileNames[i]);
         auto start_time = chrono::high_resolution_clock::now();
         vector<vector<double>> pcaData = pca(data);
@@ -475,9 +470,9 @@ int main(){
     ofstream file;
     file.open("seqTimes.txt");
     file << "[";
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 20; i++) {
         file << times[i];
-        if (i != 11) {
+        if (i != 19) {
             file << ",";
         }
     }
