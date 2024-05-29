@@ -334,7 +334,7 @@ vector<double> calculateCumulativeSum(vector<double>& vec) {
     for (int i = 1; i < vec.size(); i++) {
         cumulativeSum[i] = cumulativeSum[i - 1] + vec[i];
     }
-    double sum = accumulate(vec.begin(), vec.end(), 0.0);
+    double sum = cumulativeSum[cumulativeSum.size() - 1];
     for (int i = 0; i < vec.size(); i++) {
         cumulativeSum[i] /= sum;
     }
